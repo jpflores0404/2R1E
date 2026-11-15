@@ -69,10 +69,9 @@ int terminal_draw(const char *text);
 int terminal_stopping(void);
 
 int valid_address(const char *address);
+Socket socket_listen(unsigned short port);
 int parse_port(const char *text, unsigned short *port);
-void local_addresses(char *text, size_t capacity);
 const char *net_error(void);
-Socket socket_listen(const char *address, unsigned short port);
 Socket socket_accept(Socket listener);
 Socket socket_connect(const char *address, unsigned short port);
 void socket_close(Socket socket);

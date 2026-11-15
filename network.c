@@ -6,7 +6,6 @@
 #include <arpa/inet.h>
 #include <errno.h>
 #include <fcntl.h>
-#include <ifaddrs.h>
 #include <sys/select.h>
 #include <sys/socket.h>
 #include <unistd.h>
@@ -44,31 +43,9 @@ int parse_port(const char *text, unsigned short *port)
         if (i >= 5 || text[i] < '0' || text[i] > '9') return 0;
         value = value * 10 + (unsigned int)(text[i] - '0');
     }
-    if (value == 0 || value > 65535) return 0;
+    if (value <= 1024 || value > 65535) return 0;
     *port = (unsigned short)value;
     return 1;
-}
-
-static void list_address(char *text, size_t capacity, struct in_addr address)
-{
-    char ip[INET_ADDRSTRLEN];
-    if (!inet_ntop(AF_INET, &address, ip, sizeof ip) || !valid_address(ip)) return;
-    size_t used = strlen(text);
-    snprintf(text + used, capacity - used, "  %s%s\n", ip,
-             (ntohl(address.s_addr) >> 24) == 127 ? " (this computer only)" : "");
-}
-
-void local_addresses(char *text, size_t capacity)
-{
-    if (!text || capacity == 0) return;
-    text[0] = '\0';
-    struct ifaddrs *addresses;
-    if (getifaddrs(&addresses) != 0) return;
-    for (struct ifaddrs *item = addresses; item; item = item->ifa_next) {
-        if (item->ifa_addr && item->ifa_addr->sa_family == AF_INET)
-            list_address(text, capacity, ((struct sockaddr_in *)item->ifa_addr)->sin_addr);
-    }
-    freeifaddrs(addresses);
 }
 
 static int retry_error(void)
@@ -88,18 +65,18 @@ static int nonblocking(Socket socket)
     return flags >= 0 && fcntl(socket, F_SETFL, flags | O_NONBLOCK) == 0;
 }
 
-Socket socket_listen(const char *host, unsigned short port)
+Socket socket_listen(unsigned short port)
 {
     struct sockaddr_in address = {0};
-    if (!valid_address(host) || !port) {
-        last_error = "Enter a valid local IPv4 address and a port from 1 to 65535.";
+    if (port <= 1024) {
+        last_error = "Enter a port from 1025 to 65535.";
         return NO_SOCKET;
     }
     Socket listener = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     int enabled = 1;
     if (listener == NO_SOCKET) { socket_error(); return NO_SOCKET; }
     address.sin_family = AF_INET;
-    inet_pton(AF_INET, host, &address.sin_addr);
+    address.sin_addr.s_addr = INADDR_ANY;
     address.sin_port = htons(port);
     if (setsockopt(listener, SOL_SOCKET, SO_REUSEADDR, &enabled, sizeof enabled) != 0 ||
         bind(listener, (struct sockaddr *)&address, sizeof address) != 0 ||
@@ -132,8 +109,8 @@ Socket socket_connect(const char *host, unsigned short port)
 
     address.sin_family = AF_INET;
     address.sin_port = htons(port);
-    if (!valid_address(host) || !port) {
-        last_error = "Enter the host's IPv4 address and a port from 1 to 65535.";
+    if (!valid_address(host) || port <= 1024) {
+        last_error = "Enter the host's IPv4 address and a port from 1025 to 65535.";
         return NO_SOCKET;
     }
     inet_pton(AF_INET, host, &address.sin_addr);

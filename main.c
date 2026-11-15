@@ -29,23 +29,21 @@ static void notice(const char *message)
 
 static int ask_connection(int hosting, char address[TEXT_SIZE], unsigned short *port)
 {
-    char candidates[512] = "";
-    if (hosting) local_addresses(candidates, sizeof candidates);
-    for (int field = 0; field < 2; ++field) {
+    for (int field = hosting ? 1 : 0; field < 2; ++field) {
         char input[TEXT_SIZE] = "";
         size_t length = 0;
         const char *error = "";
         while (!terminal_stopping()) {
             char screen[1200];
-            const char *title = field ? "TCP port" : hosting ? "Local IPv4 address to host on" : "Host IPv4 address";
-            const char *hint = field ? "Enter the agreed port, 1-65535. Unused ports 1024-65535 are recommended."
-                : hosting ? "Use an address assigned to this computer. Share it with your partner."
-                : "Enter the exact address your partner shares.";
-            snprintf(screen, sizeof screen, "2R1E | %s\n\n%s\n%s\n\n%s%s%s%s\n%s_\n\n%s\nEnter continues. Escape cancels.\n",
-                     hosting ? "Host" : "Join", title, hint,
-                     hosting && !field ? "Local IPv4 addresses:\n" : "",
-                     hosting && !field ? (candidates[0] ? candidates : "  Could not list addresses. Check your network settings.\n") : "",
-                     field ? "Selected host IPv4: " : "", field ? address : "", input, error);
+            const char *title = field ? "TCP port" : "Host IPv4 address";
+            const char *hint = field
+                ? "Enter a port from 1025 to 65535 (for example 5050)."
+                : "Enter the IPv4 address shared by Host.";
+            snprintf(screen, sizeof screen,
+                "2R1E | %s\n\n%s\n%s\n\n%s%s\n\n%s_\n\n%s\nEnter continues. Escape cancels.\n",
+                hosting ? "Host" : "Join", title, hint,
+                field && !hosting ? "Host IPv4: " : "",
+                field && !hosting ? address : "", input, error);
             if (!terminal_draw(screen)) return 0;
             int key = terminal_key(20);
             if (key < 0 || key == KEY_ESCAPE) return 0;
@@ -54,7 +52,7 @@ static int ask_connection(int hosting, char address[TEXT_SIZE], unsigned short *
                     if (!field) snprintf(address, TEXT_SIZE, "%s", input);
                     break;
                 }
-                error = field ? "Invalid port. Enter digits from 1 to 65535."
+                error = field ? "Invalid port. Enter digits from 1025 to 65535."
                               : "Invalid IPv4 address. Enter four octets from 0 to 255 for a unicast address.";
             } else if (key == KEY_BACKSPACE && length) {
                 input[--length] = '\0';
@@ -68,16 +66,17 @@ static int ask_connection(int hosting, char address[TEXT_SIZE], unsigned short *
     return 1;
 }
 
-static Socket wait_for_guest(const char *address, unsigned short port)
+static Socket wait_for_guest(unsigned short port)
 {
-    Socket listener = socket_listen(address, port);
+    Socket listener = socket_listen(port);
     if (listener == NO_SOCKET) { notice(net_error()); return NO_SOCKET; }
     char screen[512];
     snprintf(screen, sizeof screen,
-             "2R1E\n\nWaiting for Player 2\n\nHost IPv4: %s\nTCP port: %u\n\n"
-             "Tell your partner to enter this IP and port in Join.\n"
-             "Use a LAN address for separate computers; loopback is local only.\n\nQ or Escape: cancel\n",
-             address, (unsigned int)port);
+         "2R1E\n\nWaiting for Player 2\n\nTCP port: %u\n\n"
+         "Find this computer's LAN IPv4 address in its network settings.\n"
+         "Tell Player 2 to enter that address and this port in Join.\n"
+         "Q or Escape: cancel\n",
+         (unsigned int)port);
     if (!terminal_draw(screen)) { socket_close(listener); return NO_SOCKET; }
     Socket guest = NO_SOCKET;
     while (!terminal_stopping()) {
@@ -307,7 +306,7 @@ int main(void)
         if (selected != previous) {
             char menu[512];
             snprintf(menu, sizeof menu, "2R1E\n\n%c 1. Host game\n%c 2. Join game\n%c 3. Quit\n\n"
-                     "Choose 1, 2, or 3, then Enter.\nHost chooses the local IP and TCP port. Join enters the same values.\n",
+                     "Choose 1, 2, or 3, then Enter.\nHost chooses a TCP port. Join enters Host's IPv4 address and the same port.\n",
                      selected == 1 ? '>' : ' ', selected == 2 ? '>' : ' ', selected == 3 ? '>' : ' ');
             if (!terminal_draw(menu)) break;
             previous = selected;
@@ -320,7 +319,7 @@ int main(void)
         char address[TEXT_SIZE];
         unsigned short port;
         if (ask_connection(selected == 1, address, &port)) {
-            Socket socket = selected == 1 ? wait_for_guest(address, port) : socket_connect(address, port);
+            Socket socket = selected == 1 ? wait_for_guest(port) : socket_connect(address, port);
             if (socket != NO_SOCKET) {
                 if (selected == 1) host_game(socket);
                 else join_game(socket);

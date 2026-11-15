@@ -24,7 +24,7 @@ gcc -std=c17 -O2 -Wall -Wextra -Werror main.c maps.c movement.c puzzles.c displa
 
 Both players need the same game version and a network that allows connections between their computers.
 
-1. Player 1 chooses **Host game**, enters their reachable local IPv4 address from the addresses shown, and chooses an unused TCP port from `1024` to `65535`.
+1. Player 1 chooses **Host game** and chooses an unused TCP port from `1025` to `65535`.
 2. Player 1 tells Player 2 the address and port and waits for the connection.
 3. Player 2 chooses **Join game** and enters that same host address and port.
 
@@ -32,14 +32,14 @@ The host's firewall must allow incoming TCP connections on the chosen port. Use 
 
 ## Controls
 
-| Key | Action |
-|---|---|
-| W / A / S / D | Move and face that direction |
-| E | Inspect or use the object directly ahead |
-| Enter | Confirm a menu choice or submit an answer |
-| Backspace | Delete a character while typing |
-| Escape | Cancel text entry or connection setup |
-| Q | Leave gameplay or quit from the menu |
+| Key           | Action                                    |
+| ------------- | ----------------------------------------- |
+| W / A / S / D | Move and face that direction              |
+| E             | Inspect or use the object directly ahead  |
+| Enter         | Confirm a menu choice or submit an answer |
+| Backspace     | Delete a character while typing           |
+| Escape        | Cancel text entry or connection setup     |
+| Q             | Leave gameplay or quit from the menu      |
 
 Stand beside an object, face it, and press E. When `Answer>` appears, type the answer and press Enter. Movement keys and Q become text while typing. Wrong answers can be retried.
 
@@ -49,16 +49,16 @@ Both players must use their own `E` exit object to advance on each map. After wi
 
 Player 1 is Host; Player 2 is Join.
 
-| Map | Player | Object | Answer or action |
-|---|---|---|---|
-| 1 | 2 | N, Three Blanks | Enter `light passage watcher` |
-| 1 | 2 | K, cabinet | Enter `246` |
-| 1 | 1 | H, hatch | Enter `259` |
-| 1 | Both | Their own E exit | Face it and press E |
-| 2 | 1 | B, statue | Face it and press E to open the passage |
-| 2 | 2 | D, dial panel, or T, test console | Enter `2 3 4` with spaces |
-| 2 | Both | Their own E exit | Face it and press E |
-| 3 | 1 | 4, White Return valve | Face it and press E to obtain clearance |
-| 3 | 1 | A, authorization terminal | Face it and press E after clearance |
-| 3 | 2 | S, mechanical safety release | Face it and press E after clearance |
-| 3 | Both | Their own E exit | Face it and press E to win |
+| Map | Player | Object                            | Answer or action                        |
+| --- | ------ | --------------------------------- | --------------------------------------- |
+| 1   | 2      | N, Three Blanks                   | Enter `light passage watcher`           |
+| 1   | 2      | K, cabinet                        | Enter `246`                             |
+| 1   | 1      | H, hatch                          | Enter `259`                             |
+| 1   | Both   | Their own E exit                  | Face it and press E                     |
+| 2   | 1      | B, statue                         | Face it and press E to open the passage |
+| 2   | 2      | D, dial panel, or T, test console | Enter `2 3 4` with spaces               |
+| 2   | Both   | Their own E exit                  | Face it and press E                     |
+| 3   | 1      | 4, White Return valve             | Face it and press E to obtain clearance |
+| 3   | 1      | A, authorization terminal         | Face it and press E after clearance     |
+| 3   | 2      | S, mechanical safety release      | Face it and press E after clearance     |
+| 3   | Both   | Their own E exit                  | Face it and press E to win              |
