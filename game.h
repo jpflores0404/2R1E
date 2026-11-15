@@ -8,6 +8,7 @@
 #define TEXT_SIZE 192
 #define CLUE_SIZE 256
 #define SCREEN_SIZE 4096
+#define ACTIONS_PER_TURN 5
 
 enum { PROMPT_NONE, PROMPT_WORDS, PROMPT_CABINET, PROMPT_HATCH, PROMPT_DIALS };
 enum { MODE_PLAY, MODE_ANSWER };
@@ -23,6 +24,9 @@ typedef struct {
     int map, words, cabinet, hatch, passage, calibrated;
     int clearance, authorization, release, finished;
     int dials[3];
+    int active_player;       
+    unsigned int turn_id;   
+    int actions_left;        
     Player players[2];
 } Game;
 
