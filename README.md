@@ -4,31 +4,43 @@ A two-player terminal escape game in C17. Explore separate areas, share clues by
 
 ## Run on Linux
 
-Use a terminal with at least 80 columns and 30 rows on each computer. The included executable is for Linux x86_64.
-
-From the repository directory, run:
-
-```sh
-chmod +x 2R1E
-./2R1E
-```
+Use a terminal with at least 80 columns and 30 rows on each computer.
 
 To build from source, install GCC and the standard Linux development headers, then run:
 
+compile server:
+
 ```sh
-gcc -std=c17 -O2 -Wall -Wextra -Werror main.c maps.c movement.c puzzles.c display.c network.c terminal.c -o 2R1E
-./2R1E
+gcc -std=c17 -O2 -Wall -Wextra -Werror \
+  server.c session.c maps.c movement.c puzzles.c display.c network.c terminal.c \
+  -o 2R1E-server
+```
+
+compile client:
+
+```sh
+gcc -std=c17 -O2 -Wall -Wextra -Werror \
+  client.c session.c maps.c movement.c display.c network.c terminal.c \
+  -o 2R1E-client
+```
+
+Run:
+
+```sh
+./2R1E-server
+```
+
+```sh
+./2R1E-client
 ```
 
 ## Connect
 
-Both players need the same game version and a network that allows connections between their computers.
+1. Player 1/Server chooses an unused TCP port from `1025` to `65535`.
+2. Player 1/Server tells Player 2/Client the address and port and waits for the connection.
+3. Player 2 enters that same host address and port.
 
-1. Player 1 chooses **Host game** and chooses an unused TCP port from `1025` to `65535`.
-2. Player 1 tells Player 2 the address and port and waits for the connection.
-3. Player 2 chooses **Join game** and enters that same host address and port.
-
-The host's firewall must allow incoming TCP connections on the chosen port. Use the host's LAN address. If either player disconnects, start a new session.
+Use the host's LAN address. If either player disconnects, start a new session.
 
 ## Controls
 
@@ -39,11 +51,11 @@ The host's firewall must allow incoming TCP connections on the chosen port. Use 
 | Enter         | Confirm a menu choice or submit an answer |
 | Backspace     | Delete a character while typing           |
 | Escape        | Cancel text entry or connection setup     |
-| Q             | Leave gameplay or quit from the menu      |
+| Q             | Leave gameplay                            |
 
 Stand beside an object, face it, and press E. When `Answer>` appears, type the answer and press Enter. Movement keys and Q become text while typing. Wrong answers can be retried.
 
-Both players must use their own `E` exit object to advance on each map. After winning, press Enter on each terminal to return to the menu.
+Both players must use their own `E` exit object to advance on each map. After winning, press Enter on each terminal to return to connection prompt.
 
 ## Answer keys to puzzles
 

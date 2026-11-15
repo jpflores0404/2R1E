@@ -22,7 +22,7 @@ static void socket_error(void)
     int error = errno;
     if (error == EADDRINUSE) last_error = "That IP and port are already in use. Choose another port.";
     else if (error == EADDRNOTAVAIL) last_error = "That IP is not assigned to this computer. Choose a local address.";
-    else if (error == EACCES) last_error = "Permission denied. Try an unused port from 1024 to 65535.";
+    else if (error == EACCES) last_error = "Permission denied. Try an unused port from 1025 to 65535.";
     else if (error == ECONNREFUSED) last_error = "Connection refused. Check that Host is waiting on the same IP and port.";
     else last_error = "Connection failed. Check the selected IP, port, network and firewall.";
 }
@@ -72,7 +72,7 @@ Socket socket_listen(unsigned short port)
         last_error = "Enter a port from 1025 to 65535.";
         return NO_SOCKET;
     }
-    Socket listener = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    Socket listener = socket(AF_INET, SOCK_STREAM, 0);
     int enabled = 1;
     if (listener == NO_SOCKET) { socket_error(); return NO_SOCKET; }
     address.sin_family = AF_INET;
@@ -114,7 +114,7 @@ Socket socket_connect(const char *host, unsigned short port)
         return NO_SOCKET;
     }
     inet_pton(AF_INET, host, &address.sin_addr);
-    connection = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    connection = socket(AF_INET, SOCK_STREAM, 0);
     if (connection == NO_SOCKET) { socket_error(); return NO_SOCKET; }
     if (!nonblocking(connection)) goto failed;
     if (connect(connection, (struct sockaddr *)&address, sizeof address) == 0) return connection;

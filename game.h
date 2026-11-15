@@ -50,6 +50,13 @@ typedef struct {
     size_t received, queued, sent, latest_size;
 } Peer;
 
+int request_number(const char *text, char **end, unsigned int *number);
+void sync_controls(Controls *controls, unsigned int *pending, int old_map, const View *view);
+int usable_key(int key, const Controls *controls, int finished);
+void flush_and_close(Peer *peer);
+void notice(const char *message);
+int ask_connection(int hosting, char address[TEXT_SIZE], unsigned short *port);
+
 char map_cell(int map, int player, int x, int y, int passage);
 const char *map_room(int map, int player, int x, int y);
 const char *map_description(int map, int player, char object);
