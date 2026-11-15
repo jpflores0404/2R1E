@@ -5,7 +5,9 @@
 
 void move_player(Game *game, int number, char key)
 {
-    if (number < 0 || number > 1 || game->finished) return;
+    if (!game || number < 0 || number > 1 || game->finished) return;
+    if (number != game->active_player || game->actions_left <= 0 ||
+        game->players[number].at_exit || game->players[number].prompt != PROMPT_NONE) return;
 
     int dx = 0, dy = 0;
     switch (key) {
@@ -19,7 +21,6 @@ void move_player(Game *game, int number, char key)
     Player *player = &game->players[number];
     player->dx = dx;
     player->dy = dy;
-    player->prompt = PROMPT_NONE;
     char tile = map_cell(game->map, number, player->x + dx,
                          player->y + dy, game->passage);
     if (tile == '.' || tile == '*') {
@@ -66,6 +67,9 @@ int control_key(Controls *controls, int key, char command[TEXT_SIZE])
 
     switch (key) {
     case 'q': case 'Q': return -1;
+    case 't': case 'T':
+        strcpy(command, "pass");
+        return 1;
     case 'w': case 'W': case 'a': case 'A':
     case 's': case 'S': case 'd': case 'D': case 'e': case 'E':
         command[0] = (char)key;
