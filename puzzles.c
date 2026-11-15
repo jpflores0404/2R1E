@@ -8,8 +8,20 @@ static void tell(Game *game, int player, const char *text)
     snprintf(game->players[player].clue, CLUE_SIZE, "%s", text);
 }
 
+static void next_turn(Game *game)
+{
+    int next = 1 - game->active_player;
+    if (game->players[next].at_exit) next = game->active_player;
+    game->active_player = next;
+    ++game->turn_id;
+    game->actions_left = ACTIONS_PER_TURN;
+}
+
 static void enter_map(Game *game)
 {
+    game->active_player = 0;
+    ++game->turn_id;
+    game->actions_left = ACTIONS_PER_TURN;
     for (int i = 0; i < 2; ++i) {
         game->players[i] = (Player){0};
         game->players[i].x = 1;
@@ -47,20 +59,21 @@ static int normalize(const char *input, char output[TEXT_SIZE])
     return 1;
 }
 
-static void use_exit(Game *game, int player)
+static int use_exit(Game *game, int player)
 {
+    if (game->players[player].at_exit) return 0;
     int open;
     if (game->map == 1) open = game->hatch;
     else if (game->map == 2) open = game->calibrated;
     else open = game->clearance && game->authorization && game->release;
     if (!open) {
         tell(game, player, "Exit locked. Complete your team's puzzles and release controls first.");
-        return;
+        return 0;
     }
 
     game->players[player].at_exit = 1;
     tell(game, player, "Your exit is ready. Your partner must also use their exit control.");
-    if (!game->players[0].at_exit || !game->players[1].at_exit) return;
+    if (!game->players[0].at_exit || !game->players[1].at_exit) return 1;
 
     if (game->map < 3) {
         ++game->map;
@@ -72,17 +85,18 @@ static void use_exit(Game *game, int player)
             tell(game, i, "Both operators escaped. The facility is open. Press Enter to return to the main menu.");
         }
     }
+    return 1;
 }
 
-static void inspect(Game *game, int player)
+static int inspect(Game *game, int player)
 {
     Player *operator = &game->players[player];
     char object = facing_object(game, player);
+    int cost = 0;
     operator->prompt = PROMPT_NONE;
 
     if (object == 'E') {
-        use_exit(game, player);
-        return;
+        return use_exit(game, player);
     }
     const char *text = map_description(game->map, player, object);
 
@@ -107,33 +121,38 @@ static void inspect(Game *game, int player)
             text = "Hatch keypad: combine your equations with your partner's instruction. Type three digits.";
         }
     } else if (game->map == 2 && player == 0 && object == 'B') {
+        cost = 1;
         game->passage = 1;
         text = "Statue B faces north beside the crack. The passage in the east wall opens.";
     } else if (game->map == 2 && player == 1 && (object == 'D' || object == 'T')) {
         operator->prompt = PROMPT_DIALS;
         text = "Signal calibration: type A B C as three digits from 0 to 4 separated by spaces. Enter tests them. Your partner sees the receiver feedback.";
     } else if (game->map == 3 && player == 0 && object >= '1' && object <= '4') {
+        cost = 1;
         if (object == '4') {
             game->clearance = 1;
             text = "White Return valve accepted. Containment clearance granted. Activate authorization and the mechanical release.";
         } else {
             snprintf(operator->clue, CLUE_SIZE, "%s This valve is excluded from routine clearance. Compare the labels with your partner's record and try again.", text);
-            return;
+            return cost;
         }
     } else if (game->map == 3 && player == 0 && object == 'A') {
         if (!game->clearance) text = "Authorization locked. Obtain containment clearance first.";
         else {
             game->authorization = 1;
+            cost = 1;
             text = "Authorization accepted. Ask your partner to operate the mechanical safety release.";
         }
     } else if (game->map == 3 && player == 1 && object == 'S') {
         if (!game->clearance) text = "Mechanical release locked. Your partner must obtain containment clearance.";
         else {
             game->release = 1;
+            cost = 1;
             text = "Mechanical safety released. Both operators must finish their controls and use their own exits.";
         }
     }
     tell(game, player, text);
+    return cost;
 }
 
 static void calibrate(Game *game, int player, const char *text)
@@ -215,18 +234,49 @@ static void submit_answer(Game *game, int player, const char *input)
     operator->prompt = PROMPT_NONE;
 }
 
+static int answer_prompt(const Game *game, int player)
+{
+    int prompt = game->players[player].prompt;
+    char object = facing_object(game, player);
+    if (game->map == 1 && player == 1) {
+        return (object == 'N' && prompt == PROMPT_WORDS && !game->words) ||
+               (object == 'K' && prompt == PROMPT_CABINET && game->words && !game->cabinet);
+    }
+    if (game->map == 1 && player == 0)
+        return object == 'H' && prompt == PROMPT_HATCH && game->cabinet && !game->hatch;
+    return game->map == 2 && player == 1 && (object == 'D' || object == 'T') &&
+           prompt == PROMPT_DIALS;
+}
+
 void apply_action(Game *game, int player, const char *command)
 {
     if (!game || player < 0 || player > 1 || !command || game->finished) return;
+    if (player != game->active_player || game->players[player].at_exit ||
+        game->actions_left <= 0) return;
+
+    int old_map = game->map;
+    int cost = 0;
     if (strlen(command) == 1 && strchr("wasdWASD", command[0])) {
+        if (game->players[player].prompt != PROMPT_NONE) return;
         move_player(game, player, command[0]);
+        cost = 1;
     } else if (strcmp(command, "e") == 0 || strcmp(command, "E") == 0) {
-        inspect(game, player);
+        cost = inspect(game, player);
     } else if (strcmp(command, "cancel") == 0) {
         game->players[player].prompt = PROMPT_NONE;
     } else if (strncmp(command, "answer ", 7) == 0) {
+        if (!answer_prompt(game, player)) return;
         submit_answer(game, player, command + 7);
+        cost = 1;
+    } else if (strcmp(command, "pass") == 0) {
+        next_turn(game);
+        return;
     } else {
-        tell(game, player, "Unknown action. Use WASD or E.");
+        return;
     }
+
+    if (game->map != old_map) return;
+    game->actions_left -= cost;
+    if (!game->finished && (game->actions_left == 0 || game->players[player].at_exit))
+        next_turn(game);
 }
