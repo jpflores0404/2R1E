@@ -38,8 +38,9 @@ static void host_game(Socket socket)
     peer_open(&peer, socket);
     while (!terminal_stopping()) {
         int old_map = current.map;
+        unsigned int old_turn = current.turn_id;
         make_view(&game, 0, &current);
-        sync_controls(&controls, &pending, old_map, &current);
+        sync_controls(&controls, &pending, old_map, old_turn, &current);
         make_view(&game, 1, &guest);
         if (connected && memcmp(&guest, &previous_guest, sizeof guest) != 0) {
             if (!peer_screen(&peer, &guest)) break;
@@ -71,11 +72,13 @@ static void host_game(Socket socket)
                 peer_close(&peer);
                 break;
             }
-            if (!game.finished && line[0] == '0' + game.map && line[1] == ' ') {
+            if (!game.finished && line[0] == '0' + game.players[1].map && line[1] == ' ') {
                 char *end;
+                unsigned int turn;
                 unsigned int request;
-                if (request_number(line + 2, &end, &request) && *end == ' ' &&
-                    request > game.players[1].reply) {
+                if (request_number(line + 2, &end, &turn) && *end == ' ' && 
+                    request_number(end + 1, &end, &request) && *end == ' ' &&
+                    request > game.players[1].reply && turn == game.turn_id) {
                     apply_action(&game, 1, end + 1);
                     game.players[1].reply = request;
                 }

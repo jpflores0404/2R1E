@@ -18,9 +18,16 @@ typedef struct {
     int x, y, dx, dy, at_exit, prompt;
     unsigned int reply;
     char clue[CLUE_SIZE];
+    int map;
+    int key;
+    int words, cabinet, hatch; // map 1
+    int passage, calibrated; // map 2
+    int dials[3];
+    int clearance, authorization, release, trap_used; // map 3
 } Player;
 
 typedef struct {
+    int winner;
     int map, words, cabinet, hatch, passage, calibrated;
     int clearance, authorization, release, finished;
     int dials[3];
@@ -34,6 +41,8 @@ typedef struct {
     int map, prompt, finished;
     unsigned int reply;
     char screen[SCREEN_SIZE];
+    unsigned int turn_id;
+    int can_act;
 } View;
 
 typedef struct {
@@ -51,7 +60,7 @@ typedef struct {
 } Peer;
 
 int request_number(const char *text, char **end, unsigned int *number);
-void sync_controls(Controls *controls, unsigned int *pending, int old_map, const View *view);
+void sync_controls(Controls *controls, unsigned int *pending, int old_map, unsigned int old_turn, const View *view);
 int usable_key(int key, const Controls *controls, int finished);
 void flush_and_close(Peer *peer);
 void notice(const char *message);

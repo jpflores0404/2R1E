@@ -167,8 +167,8 @@ int peer_queue(Peer *peer, const char *text)
 int peer_screen(Peer *peer, const View *view)
 {
     char frame[SCREEN_SIZE + 64];
-    int length = snprintf(frame, sizeof frame, "VIEW %d %d %d %u\n%s.\n",
-                          view->map, view->prompt, view->finished, view->reply, view->screen);
+    int length = snprintf(frame, sizeof frame, "VIEW %d %d %d %u %u %d\n%s.\n",
+                          view->map, view->prompt, view->finished, view->reply, view->turn_id, view->can_act, view->screen);
     if (length < 0 || length >= (int)sizeof frame) return 0;
 
     /* Finish a started frame before switching to the newest screen. */

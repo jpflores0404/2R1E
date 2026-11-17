@@ -15,9 +15,9 @@ int request_number(const char *text, char **end, unsigned int *number)
     return 1;
 }
 
-void sync_controls(Controls *controls, unsigned int *pending, int old_map, const View *view)
+void sync_controls(Controls *controls, unsigned int *pending, int old_map, unsigned int old_turn, const View *view)
 {
-    if (old_map != view->map || view->finished) {
+    if (old_map != view->map || view->finished || !view->can_act || old_turn != view->turn_id) {
         *controls = (Controls){0};
         *pending = 0;
     }

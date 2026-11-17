@@ -34,19 +34,23 @@ static void join_game(Socket socket)
                     line[5] < '1' || line[5] > '3' || line[6] != ' ' ||
                     line[7] < '0' || line[7] > '4' || line[8] != ' ' ||
                     line[9] < '0' || line[9] > '1' || line[10] != ' ' ||
-                    !request_number(line + 11, &end, &incoming.reply) || *end) {
+                    !request_number(line + 11, &end, &incoming.reply) || *end != ' ' ||
+                    !request_number(end + 1, &end, &incoming.turn_id) || *end != ' ' ||
+                    (end[1] != '0' && end[1] != '1') || end[2] != '\0') {
                     connected = 0;
                     break;
                 }
                 incoming.map = line[5] - '0';
                 incoming.prompt = line[7] - '0';
                 incoming.finished = line[9] - '0';
+                incoming.can_act = end[1] - '0';
                 assembling = 1;
                 used = 0;
             } else if (strcmp(line, ".") == 0) {
                 int old_map = current.map;
+                unsigned int old_turn = current.turn_id;
                 current = incoming;
-                sync_controls(&controls, &pending, old_map, &current);
+                sync_controls(&controls, &pending, old_map, old_turn, &current);
                 assembling = 0;
                 dirty = 1;
             } else {
@@ -81,10 +85,10 @@ static void join_game(Socket socket)
         int action = control_key(&controls, key, command);
         if (action < 0) break;
         if (action > 0 && current.map) {
-            char message[TEXT_SIZE + 24];
+            char message[TEXT_SIZE + 32];
             if (request == UINT_MAX) break;
             ++request;
-            snprintf(message, sizeof message, "%d %u %s\n", current.map, request, command);
+            snprintf(message, sizeof message, "%d %u %u %s\n", current.map, current.turn_id, request, command);
             if (!peer_queue(&peer, message)) break;
             pending = command[1] == '\0' && (command[0] == 'e' || command[0] == 'E') ? request : 0;
         }
