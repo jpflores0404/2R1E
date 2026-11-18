@@ -5,7 +5,7 @@
 
 void move_player(Game *game, int number, char key)
 {
-    if (!game || number < 0 || number > 1 || game->finished) return;
+    if (!game || number < 0 || number > 1 || game->finished || game->winner) return;
     if (number != game->active_player || game->actions_left <= 0 ||
         game->players[number].at_exit || game->players[number].prompt != PROMPT_NONE) return;
 
@@ -21,8 +21,8 @@ void move_player(Game *game, int number, char key)
     Player *player = &game->players[number];
     player->dx = dx;
     player->dy = dy;
-    char tile = map_cell(game->map, number, player->x + dx,
-                         player->y + dy, game->passage);
+    char tile = map_cell(player->map, number, player->x + dx,
+                         player->y + dy, player->passage);
     if (tile == '.' || tile == '*') {
         player->x += dx;
         player->y += dy;
@@ -31,10 +31,10 @@ void move_player(Game *game, int number, char key)
 
 char facing_object(const Game *game, int number)
 {
-    if (number < 0 || number > 1) return '#';
+    if (!game || number < 0 || number > 1) return '#';
     const Player *player = &game->players[number];
-    return map_cell(game->map, number, player->x + player->dx,
-                    player->y + player->dy, game->passage);
+    return map_cell(player->map, number, player->x + player->dx,
+                    player->y + player->dy, player->passage);
 }
 
 int control_key(Controls *controls, int key, char command[TEXT_SIZE])
