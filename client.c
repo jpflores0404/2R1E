@@ -84,9 +84,12 @@ static void join_game(Socket socket)
         if (key == KEY_ESCAPE) pending = 0;
         int action = control_key(&controls, key, command);
         if (action < 0) break;
-        if (action > 0 && current.map) {
+        if (action > 0 && current.map && current.can_act == 1) {
             char message[TEXT_SIZE + 32];
-            if (request == UINT_MAX) break;
+            if (request == UINT_MAX) {
+                notice("Request number limit reached. Start a new Host and Join session.");
+                break;
+            }
             ++request;
             snprintf(message, sizeof message, "%d %u %u %s\n", current.map, current.turn_id, request, command);
             if (!peer_queue(&peer, message)) break;

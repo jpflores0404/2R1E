@@ -26,6 +26,21 @@ static Socket wait_for_guest(unsigned short port)
     return guest;
 }
 
+static int valid_command(const char *command)
+{
+    if (strlen(command) == 1 && strchr("wasdWASDeE", command[0]))
+        return 1;
+
+    if (strcmp(command, "pass") == 0 || strcmp(command, "cancel") == 0)
+        return 1;
+
+    if (strncmp(command, "answer ", 7) == 0 &&
+        strlen(command + 7) <= 150)
+        return 1;
+
+    return 0;
+}
+
 static void host_game(Socket socket)
 {
     Game game;
@@ -76,9 +91,11 @@ static void host_game(Socket socket)
                 char *end;
                 unsigned int turn;
                 unsigned int request;
-                if (request_number(line + 2, &end, &turn) && *end == ' ' && 
-                    request_number(end + 1, &end, &request) && *end == ' ' &&
-                    request > game.players[1].reply && turn == game.turn_id) {
+                if (request_number(line + 2, &end, &turn) && *end == ' ' &&
+                        request_number(end + 1, &end, &request) && *end == ' ' &&
+                        request > game.players[1].reply &&
+                        turn == game.turn_id &&
+                        valid_command(end + 1)) {
                     apply_action(&game, 1, end + 1);
                     game.players[1].reply = request;
                 }
@@ -88,6 +105,10 @@ static void host_game(Socket socket)
             notice("Player 2 left the session.");
             break;
         }
+        old_map = current.map;
+        old_turn = current.turn_id;
+        make_view(&game, 0, &current);
+        sync_controls(&controls, &pending, old_map, old_turn, &current);
         int key = usable_key(terminal_key(10), &controls, game.finished);
         if (key < 0) break;
         if (game.finished) {
@@ -98,7 +119,7 @@ static void host_game(Socket socket)
         if (key == KEY_ESCAPE) pending = 0;
         int action = control_key(&controls, key, command);
         if (action < 0) break;
-        if (action > 0) {
+        if (action > 0 && current.can_act == 1) {
             pending = command[1] == '\0' && (command[0] == 'e' || command[0] == 'E');
             game.players[0].reply = 1;
             apply_action(&game, 0, command);
