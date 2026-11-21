@@ -181,8 +181,7 @@ char map_cell(int map, int player, int x, int y, int passage)
         if (object->map == map && object->player == player &&
             object->x == x && object->y == y) return object->symbol;
     }
-    /* Treat padding as wall while the shared header still permits larger grids. */
-    return tile == '\0' ? '#' : tile;
+    return tile;
 }
 
 const char *map_room(int map, int player, int x, int y)

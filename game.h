@@ -3,19 +3,19 @@
 
 #include <stddef.h>
 
-#define MAP_WIDTH 49
-#define MAP_HEIGHT 17
+#define MAP_WIDTH 29
+#define MAP_HEIGHT 13
 #define TEXT_SIZE 192
 #define CLUE_SIZE 256
 #define SCREEN_SIZE 4096
-#define ACTIONS_PER_TURN 5
+#define ACTIONS_PER_TURN 10
 
 enum { PROMPT_NONE, PROMPT_WORDS, PROMPT_CABINET, PROMPT_HATCH, PROMPT_DIALS };
 enum { MODE_PLAY, MODE_ANSWER };
 enum { KEY_ESCAPE = 256, KEY_ENTER, KEY_BACKSPACE };
 
 typedef struct {
-    int x, y, dx, dy, at_exit, prompt;
+    int x, y, dx, dy, prompt;
     unsigned int reply;
     char clue[CLUE_SIZE];
     int map;
@@ -28,12 +28,10 @@ typedef struct {
 
 typedef struct {
     int winner;
-    int map, words, cabinet, hatch, passage, calibrated;
-    int clearance, authorization, release, finished;
-    int dials[3];
-    int active_player;       
-    unsigned int turn_id;   
-    int actions_left;        
+    int finished;
+    int active_player;
+    unsigned int turn_id;
+    int actions_left;
     Player players[2];
 } Game;
 

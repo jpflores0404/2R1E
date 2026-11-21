@@ -44,7 +44,7 @@ void make_view(const Game *game, int player, View *view)
     *view = (View){0};
     view->map = person->map;
     view->turn_id = game->turn_id;
-    view->can_act = !game->finished && !game->winner && !person->at_exit &&
+    view->can_act = !game->finished && !game->winner &&
                     player == game->active_player && game->actions_left > 0;
     view->prompt = person->prompt;
     view->finished = game->finished;

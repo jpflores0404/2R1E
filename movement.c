@@ -7,7 +7,7 @@ void move_player(Game *game, int number, char key)
 {
     if (!game || number < 0 || number > 1 || game->finished || game->winner) return;
     if (number != game->active_player || game->actions_left <= 0 ||
-        game->players[number].at_exit || game->players[number].prompt != PROMPT_NONE) return;
+        game->players[number].prompt != PROMPT_NONE) return;
 
     int dx = 0, dy = 0;
     switch (key) {

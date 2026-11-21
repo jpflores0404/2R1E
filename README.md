@@ -1,6 +1,6 @@
 # 2R1E: Two Rooms, One Exit
 
-A two-player terminal escape game in C17. Explore separate areas, share clues by speaking to your partner, and solve three maps.
+A two-player terminal escape game in C17. Both players race to explore three maps and the first to escape wins.
 
 ## Run on Linux
 
@@ -52,25 +52,33 @@ Use the host's LAN address. If either player disconnects, start a new session.
 | Backspace     | Delete a character while typing           |
 | Escape        | Cancel text entry or connection setup     |
 | Q             | Leave gameplay                            |
+| T             | Pass Turn                                 |
 
 Stand beside an object, face it, and press E. When `Answer>` appears, type the answer and press Enter. Movement keys and Q become text while typing. Wrong answers can be retried.
 
-Both players must use their own `E` exit object to advance on each map. After winning, press Enter on each terminal to return to connection prompt.
+Each turn starts with 10 action points (AP). A successful move costs 1 AP.
+Facing a wall or another blocked tile costs no AP. Some puzzle actions also
+cost AP. Press T to pass the rest of your turn.
+
+Each player solves their own puzzles and earns a key for each map. Use your
+own E exit to advance. The first player to escape Map 3 wins.
+
+After the match, press Enter on each terminal to return to the connection prompt.
 
 ## Answer keys to puzzles
 
-Player 1 is Host; Player 2 is Join.
+Both players complete these steps in their own areas.
 
-| Map | Player | Object                            | Answer or action                        |
-| --- | ------ | --------------------------------- | --------------------------------------- |
-| 1   | 2      | N, Three Blanks                   | Enter `light passage watcher`           |
-| 1   | 2      | K, cabinet                        | Enter `246`                             |
-| 1   | 1      | H, hatch                          | Enter `259`                             |
-| 1   | Both   | Their own E exit                  | Face it and press E                     |
-| 2   | 1      | B, statue                         | Face it and press E to open the passage |
-| 2   | 2      | D, dial panel, or T, test console | Enter `2 3 4` with spaces               |
-| 2   | Both   | Their own E exit                  | Face it and press E                     |
-| 3   | 1      | 4, White Return valve             | Face it and press E to obtain clearance |
-| 3   | 1      | A, authorization terminal         | Face it and press E after clearance     |
-| 3   | 2      | S, mechanical safety release      | Face it and press E after clearance     |
-| 3   | Both   | Their own E exit                  | Face it and press E to win              |
+| Map | Object                            | Answer or action              |
+| --- | --------------------------------- | ----------------------------- |
+| 1   | N, Three Blanks                   | Enter `light passage watcher` |
+| 1   | K, cabinet                        | Enter `246`                   |
+| 1   | H, hatch                          | Enter `259`                   |
+| 1   | E, exit                           | Use after earning the key     |
+| 2   | B, statue                         | Use to open the passage       |
+| 2   | D, dial panel, or T, test console | Enter `2 3 4`                 |
+| 2   | E, exit                           | Use after earning the key     |
+| 3   | 4, White Return valve             | Use to obtain clearance       |
+| 3   | A, authorization terminal         | Use after clearance           |
+| 3   | S, mechanical safety release      | Use after clearance           |
+| 3   | E, exit                           | Use after earning the key     |

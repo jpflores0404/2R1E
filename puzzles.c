@@ -62,7 +62,7 @@ static int normalize(const char *input, char output[TEXT_SIZE])
 static int use_exit(Game *game, int number)
 {
     Player *player = &game->players[number];
-    if (game->finished || game->winner || player->at_exit) return 0;
+    if (game->finished || game->winner) return 0;
     if (!player->key) {
         tell(game, number, "Exit locked. Earn this map's key first.");
         return 0;
@@ -71,7 +71,6 @@ static int use_exit(Game *game, int number)
     if (player->map == 1 || player->map == 2) {
         enter_map(game, number, player->map + 1);
     } else if (player->map == 3) {
-        player->at_exit = 1;
         game->winner = number + 1;
         game->finished = 1;
         for (int i = 0; i < 2; ++i) {
@@ -263,13 +262,17 @@ void apply_action(Game *game, int number, const char *command)
 {
     if (!game || number < 0 || number > 1 || !command || game->finished || game->winner) return;
     Player *player = &game->players[number];
-    if (number != game->active_player || player->at_exit || game->actions_left <= 0) return;
+    if (number != game->active_player || game->actions_left <= 0) return;
 
     int cost = 0;
     if (strlen(command) == 1 && strchr("wasdWASD", command[0])) {
         if (player->prompt != PROMPT_NONE) return;
+        int old_x = player->x;
+        int old_y = player->y;
         move_player(game, number, command[0]);
-        cost = 1;
+        if (player->x != old_x || player->y != old_y) {
+            cost = 1;
+        }
     } else if (strcmp(command, "e") == 0 || strcmp(command, "E") == 0) {
         cost = inspect(game, number);
     } else if (strcmp(command, "cancel") == 0) {
