@@ -42,33 +42,51 @@ void make_view(const Game *game, int player, View *view)
     if (person->dx > 0) direction = "East";
     if (person->dy < 0) direction = "North";
     *view = (View){0};
-    view->map = game->map;
+    view->map = person->map;
+    view->turn_id = game->turn_id;
+    view->can_act = !game->finished && !game->winner && !person->at_exit &&
+                    player == game->active_player && game->actions_left > 0;
     view->prompt = person->prompt;
     view->finished = game->finished;
     view->reply = person->reply;
 
     append(view->screen, SCREEN_SIZE, "2R1E | Map %d | Player %d | %s\n",
-           game->map, player + 1, map_room(game->map, player, person->x, person->y));
-    if (game->map == 2 && player == 1)
-        append(view->screen, SCREEN_SIZE, "Facing %s | Dials A=%d B=%d C=%d | @ you # wall E exit\n",
-               direction, game->dials[0], game->dials[1], game->dials[2]);
-    else append(view->screen, SCREEN_SIZE, "Facing %s    @ you    # wall    E exit\n", direction);
+           person->map, player + 1,
+           map_room(person->map, player, person->x, person->y));
+    if (!game->finished) {
+        append(view->screen, SCREEN_SIZE,
+               "Turn: P%d | AP: %d | P1 Map %d | P2 Map %d | %s\n",
+               game->active_player + 1, game->actions_left,
+               game->players[0].map, game->players[1].map,
+               view->can_act ? "Your turn" : "Wait for opponent");
+    }
+    if (person->map == 2)
+        append(view->screen, SCREEN_SIZE,
+               "Facing %s | Dials A=%d B=%d C=%d | @ you # wall E exit",
+               direction, person->dials[0], person->dials[1], person->dials[2]);
+    else
+        append(view->screen, SCREEN_SIZE,
+               "Facing %s | @ you # wall E exit", direction);
+    append(view->screen, SCREEN_SIZE, " | Key: %s\n", person->key ? "earned" : "needed");
     for (int y = 0; y < MAP_HEIGHT; ++y) {
         char row[MAP_WIDTH + 1];
         for (int x = 0; x < MAP_WIDTH; ++x) {
-            row[x] = map_cell(game->map, player, x, y, game->passage);
+            row[x] = map_cell(person->map, player, x, y, person->passage);
             if (x == person->x && y == person->y) row[x] = '@';
         }
         row[MAP_WIDTH] = '\0';
         append(view->screen, SCREEN_SIZE, "%s\n", row);
     }
     append(view->screen, SCREEN_SIZE, "\n");
-    paragraph(view->screen, "Clue / feedback", game->finished
-              ? "Both players escaped. You completed all three maps!" : person->clue);
+    if (view->finished)
+        paragraph(view->screen, "Result", game->winner == player + 1
+                  ? "You win. You escaped first." : "Defeat. Your opponent escaped first.");
+    else
+        paragraph(view->screen, "Clue / feedback", person->clue);
     append(view->screen, SCREEN_SIZE, "--- Controls ---\n");
     append(view->screen, SCREEN_SIZE, "%s\n", game->finished
            ? "Enter: return to main menu"
-           : "WASD: Move   |   E: Use / inspect   |   Q: Quit");
+           : "WASD: Move | E: Use / inspect | T: Pass | Q: Quit");
 }
 
 int show_view(const View *view, const Controls *controls)
