@@ -79,14 +79,16 @@ void make_view(const Game *game, int player, View *view)
     }
     append(view->screen, SCREEN_SIZE, "\n");
     if (view->finished)
-        paragraph(view->screen, "Result", game->winner == player + 1
+        paragraph(view->screen, "Result",
+                  game->winner == 0 ? person->clue :
+                  game->winner == player + 1
                   ? "You win. You escaped first." : "Defeat. Your opponent escaped first.");
     else
         paragraph(view->screen, "Clue / feedback", person->clue);
     append(view->screen, SCREEN_SIZE, "--- Controls ---\n");
     append(view->screen, SCREEN_SIZE, "%s\n", game->finished
            ? "Enter: return to main menu"
-           : "WASD: Move | E: Use / inspect | T: Pass | Q: Quit");
+           : "WASD: Move | E: Use / inspect | T: Pass | N: Quit");
 }
 
 int show_view(const View *view, const Controls *controls)
@@ -99,6 +101,8 @@ int show_view(const View *view, const Controls *controls)
         const char *text = controls->text;
         if (controls->length > 50) text += controls->length - 50;
         append(screen, sizeof screen, "Answer> %s_  [Enter / Esc]\n", text);
+    } else if (!view->finished && controls->mode == MODE_QUIT) {
+        append(screen, sizeof screen, "Quit match? [Y: Quit | N / Esc: Cancel]\n");
     }
     int rows = 1;
     for (size_t i = 0; screen[i]; ++i)
@@ -108,9 +112,15 @@ int show_view(const View *view, const Controls *controls)
         char message[192];
         snprintf(message, sizeof message,
                  "Enlarge the terminal to at least 80 columns and %d rows.\n"
-                 "Network updates continue. Q leaves gameplay.\n", rows);
+                 "%s\n", rows,
+                 controls->mode == MODE_QUIT
+                     ? "Quit match? [Y: Quit | N / Esc: Cancel]"
+                     : "Network updates continue. N leaves gameplay.");
         return terminal_draw(message);
     }
-    if (!view->map) return terminal_draw("Connecting to your room...\nQ: cancel\n");
+    if (!view->map) return terminal_draw(
+        controls->mode == MODE_QUIT
+            ? "Quit match? [Y: Quit | N / Esc: Cancel]\n"
+            : "Connecting to your room...\nN: cancel\n");
     return terminal_draw(screen);
 }

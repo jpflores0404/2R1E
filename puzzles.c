@@ -1,5 +1,6 @@
 #include "game.h"
 
+#include <limits.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -11,6 +12,12 @@ static void tell(Game *game, int player, const char *text)
 static void next_turn(Game *game)
 {
     game->players[game->active_player].prompt = PROMPT_NONE;
+    if (game->turn_id == UINT_MAX) {
+        game->finished = 1;
+        for (int i = 0; i < 2; ++i)
+            tell(game, i, "Turn limit reached. Press Enter to return to the main menu.");
+        return;
+    }
     game->active_player = 1 - game->active_player;
     ++game->turn_id;
     game->actions_left = ACTIONS_PER_TURN;
@@ -280,6 +287,7 @@ void apply_action(Game *game, int number, const char *command)
     } else if (strncmp(command, "answer ", 7) == 0) {
         if (!answer_prompt(game, number)) return;
         cost = submit_answer(game, number, command + 7);
+        player->prompt = PROMPT_NONE;
     } else if (strcmp(command, "pass") == 0) {
         next_turn(game);
         return;

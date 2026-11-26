@@ -17,10 +17,15 @@ int request_number(const char *text, char **end, unsigned int *number)
 
 void sync_controls(Controls *controls, unsigned int *pending, int old_map, unsigned int old_turn, const View *view)
 {
-    if (old_map != view->map || view->finished || !view->can_act || old_turn != view->turn_id) {
+    if (view->finished) {
+        *controls = (Controls){0};
+        *pending = 0;
+    } else if (controls->mode != MODE_QUIT &&
+               (old_map != view->map || !view->can_act || old_turn != view->turn_id)) {
         *controls = (Controls){0};
         *pending = 0;
     }
+
     if (*pending && view->reply >= *pending) {
         if (view->prompt != PROMPT_NONE) {
             controls->mode = MODE_ANSWER;
@@ -38,8 +43,10 @@ int usable_key(int key, const Controls *controls, int finished)
     if (!terminal_size(&width, &height)) return -1;
     if (finished && key == KEY_ENTER) return key;
     if (width >= 80 && height >= 30) return key;
-    if (key == KEY_ESCAPE || (controls->mode == MODE_PLAY && (key == 'q' || key == 'Q')))
-        return key;
+    if (key == KEY_ESCAPE) return key;
+    if (controls->mode == MODE_PLAY && (key == 'n' || key == 'N')) return key;
+    if (controls->mode == MODE_QUIT &&
+        (key == 'y' || key == 'Y' || key == 'n' || key == 'N')) return key;
     return 0;
 }
 

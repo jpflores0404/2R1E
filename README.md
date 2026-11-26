@@ -44,15 +44,15 @@ Use the host's LAN address. If either player disconnects, start a new session.
 
 ## Controls
 
-| Key           | Action                                    |
-| ------------- | ----------------------------------------- |
-| W / A / S / D | Move and face that direction              |
-| E             | Inspect or use the object directly ahead  |
-| Enter         | Confirm a menu choice or submit an answer |
-| Backspace     | Delete a character while typing           |
-| Escape        | Cancel text entry or connection setup     |
-| Q             | Leave gameplay                            |
-| T             | Pass Turn                                 |
+| Key           | Action                                           |
+| ------------- | ------------------------------------------------ |
+| W / A / S / D | Move and face that direction                     |
+| E             | Inspect or use the object directly ahead         |
+| Enter         | Confirm a menu choice or submit an answer        |
+| Backspace     | Delete a character while typing                  |
+| Escape        | Cancel text entry or connection setup            |
+| N             | Leave gameplay (`Y` / `N` or `Esc` confirmation) |
+| T             | Pass Turn                                        |
 
 Stand beside an object, face it, and press E. When `Answer>` appears, type the answer and press Enter. Movement keys and Q become text while typing. Wrong answers can be retried.
 

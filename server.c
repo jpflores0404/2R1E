@@ -112,7 +112,7 @@ static void host_game(Socket socket)
         int key = usable_key(terminal_key(10), &controls, game.finished);
         if (key < 0) break;
         if (game.finished) {
-            if (current.finished && (key == KEY_ENTER || key == 'q' || key == 'Q')) break;
+            if (current.finished && (key == KEY_ENTER || key == 'n' || key == 'N')) break;
             continue;
         }
         char command[TEXT_SIZE];

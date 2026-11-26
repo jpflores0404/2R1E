@@ -77,13 +77,16 @@ static void join_game(Socket socket)
         int key = usable_key(terminal_key(10), &controls, current.finished);
         if (key < 0) break;
         if (current.finished) {
-            if (key == KEY_ENTER || key == 'q' || key == 'Q') break;
+            if (key == KEY_ENTER || key == 'n' || key == 'N') break;
             continue;
         }
         char command[TEXT_SIZE];
         if (key == KEY_ESCAPE) pending = 0;
         int action = control_key(&controls, key, command);
-        if (action < 0) break;
+        if (action < 0) {
+            if (connected) peer_queue(&peer, "quit\n");
+            break;
+        }
         if (action > 0 && current.map && current.can_act == 1) {
             char message[TEXT_SIZE + 32];
             if (request == UINT_MAX) {

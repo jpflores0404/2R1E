@@ -40,6 +40,12 @@ char facing_object(const Game *game, int number)
 int control_key(Controls *controls, int key, char command[TEXT_SIZE])
 {
     command[0] = '\0';
+    if (controls->mode == MODE_QUIT) {
+        if (key == 'y' || key == 'Y') return -1;
+        if (key == 'n' || key == 'N' || key == KEY_ESCAPE) controls->mode = MODE_PLAY;
+        return 0;
+    }
+
     if (key == KEY_ESCAPE) {
         controls->mode = MODE_PLAY;
         controls->length = 0;
@@ -66,7 +72,9 @@ int control_key(Controls *controls, int key, char command[TEXT_SIZE])
     }
 
     switch (key) {
-    case 'q': case 'Q': return -1;
+    case 'n': case 'N':
+        controls->mode = MODE_QUIT;
+        return 0;
     case 't': case 'T':
         strcpy(command, "pass");
         return 1;
