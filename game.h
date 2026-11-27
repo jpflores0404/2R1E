@@ -2,6 +2,7 @@
 #define GAME_H
 
 #include <stddef.h>
+#include <stdint.h>
 
 #define MAP_WIDTH 29
 #define MAP_HEIGHT 13
@@ -9,6 +10,8 @@
 #define CLUE_SIZE 256
 #define SCREEN_SIZE 4096
 #define ACTIONS_PER_TURN 10
+#define TURN_START_MS 10000
+#define TURN_ACTION_MS 30000
 
 enum { PROMPT_NONE, PROMPT_WORDS, PROMPT_CABINET, PROMPT_HATCH, PROMPT_DIALS };
 enum { MODE_PLAY, MODE_ANSWER, MODE_QUIT };
@@ -32,6 +35,8 @@ typedef struct {
     int active_player;
     unsigned int turn_id;
     int actions_left;
+    int64_t deadline_ms;
+    int timer_started;
     Player players[2];
 } Game;
 
@@ -72,8 +77,9 @@ void move_player(Game *game, int player, char key);
 char facing_object(const Game *game, int player);
 int control_key(Controls *controls, int key, char command[TEXT_SIZE]);
 
-void start_game(Game *game);
-void apply_action(Game *game, int player, const char *command);
+void start_game(Game *game, int64_t now_ms);
+void expire_turn(Game *game, int64_t now_ms);
+void apply_action(Game *game, int player, const char *command, int64_t now_ms);
 
 int terminal_open(void);
 void terminal_close(void);
@@ -96,7 +102,7 @@ int peer_line(Peer *peer, char line[TEXT_SIZE]);
 int peer_queue(Peer *peer, const char *text);
 int peer_screen(Peer *peer, const View *view);
 
-void make_view(const Game *game, int player, View *view);
+void make_view(const Game *game, int player, View *view, int64_t now_ms);
 int show_view(const View *view, const Controls *controls);
 
 #endif

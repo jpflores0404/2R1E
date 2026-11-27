@@ -34,7 +34,7 @@ static void paragraph(char *screen, const char *label, const char *text)
     }
 }
 
-void make_view(const Game *game, int player, View *view)
+void make_view(const Game *game, int player, View *view, int64_t now_ms)
 {
     const Player *person = &game->players[player];
     const char *direction = "South";
@@ -54,9 +54,12 @@ void make_view(const Game *game, int player, View *view)
            person->map, player + 1,
            map_room(person->map, player, person->x, person->y));
     if (!game->finished) {
+        int64_t remaining_ms = game->deadline_ms - now_ms;
+        int seconds = remaining_ms > 0 ? (int)((remaining_ms + 999) / 1000) : 0;
         append(view->screen, SCREEN_SIZE,
-               "Turn: P%d | AP: %d | P1 Map %d | P2 Map %d | %s\n",
-               game->active_player + 1, game->actions_left,
+               "Turn: P%d | %s %ds | AP: %d | P1 Map %d | P2 Map %d | %s\n",
+               game->active_player + 1, game->timer_started ? "Time" : "Start",
+               seconds, game->actions_left,
                game->players[0].map, game->players[1].map,
                view->can_act ? "Your turn" : "Wait for opponent");
     }

@@ -44,6 +44,11 @@ Use the host's LAN address. If either player disconnects, start a new session.
 
 ## Controls
 
+The active player has 10 seconds to start moving or interacting. Their first
+movement or interaction starts a 30-second countdown shown on both screens.
+When time runs out, unused AP are forfeited and the other player takes over.
+Puzzle progress is kept, and unfinished answers must be entered again.
+
 | Key           | Action                                           |
 | ------------- | ------------------------------------------------ |
 | W / A / S / D | Move and face that direction                     |

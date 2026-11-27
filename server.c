@@ -1,7 +1,17 @@
+#define _POSIX_C_SOURCE 200809L
+
 #include "game.h"
 
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
+
+static int64_t monotonic_ms(void)
+{
+    struct timespec now;
+    if (clock_gettime(CLOCK_MONOTONIC, &now) != 0) return -1;
+    return (int64_t)now.tv_sec * 1000 + now.tv_nsec / 1000000;
+}
 
 static Socket wait_for_guest(unsigned short port)
 {
@@ -49,14 +59,19 @@ static void host_game(Socket socket)
     View current = {0}, previous = {0}, guest = {0}, previous_guest = {0};
     unsigned int pending = 0;
     int connected = 1, dirty = 1, last_width = 0, last_height = 0;
-    start_game(&game);
     peer_open(&peer, socket);
+    int64_t now_ms = monotonic_ms();
+    if (now_ms < 0) goto clock_failed;
+    start_game(&game, now_ms);
     while (!terminal_stopping()) {
+        now_ms = monotonic_ms();
+        if (now_ms < 0) goto clock_failed;
+        expire_turn(&game, now_ms);
         int old_map = current.map;
         unsigned int old_turn = current.turn_id;
-        make_view(&game, 0, &current);
+        make_view(&game, 0, &current, now_ms);
         sync_controls(&controls, &pending, old_map, old_turn, &current);
-        make_view(&game, 1, &guest);
+        make_view(&game, 1, &guest, now_ms);
         if (connected && memcmp(&guest, &previous_guest, sizeof guest) != 0) {
             if (!peer_screen(&peer, &guest)) break;
             previous_guest = guest;
@@ -87,6 +102,9 @@ static void host_game(Socket socket)
                 peer_close(&peer);
                 break;
             }
+            now_ms = monotonic_ms();
+            if (now_ms < 0) goto clock_failed;
+            expire_turn(&game, now_ms);
             if (!game.finished && line[0] == '0' + game.players[1].map && line[1] == ' ') {
                 char *end;
                 unsigned int turn;
@@ -96,7 +114,7 @@ static void host_game(Socket socket)
                         request > game.players[1].reply &&
                         turn == game.turn_id &&
                         valid_command(end + 1)) {
-                    apply_action(&game, 1, end + 1);
+                    apply_action(&game, 1, end + 1, now_ms);
                     game.players[1].reply = request;
                 }
             }
@@ -107,7 +125,7 @@ static void host_game(Socket socket)
         }
         old_map = current.map;
         old_turn = current.turn_id;
-        make_view(&game, 0, &current);
+        make_view(&game, 0, &current, now_ms);
         sync_controls(&controls, &pending, old_map, old_turn, &current);
         int key = usable_key(terminal_key(10), &controls, game.finished);
         if (key < 0) break;
@@ -120,13 +138,23 @@ static void host_game(Socket socket)
         int action = control_key(&controls, key, command);
         if (action < 0) break;
         if (action > 0 && current.can_act == 1) {
-            pending = command[1] == '\0' && (command[0] == 'e' || command[0] == 'E');
-            game.players[0].reply = 1;
-            apply_action(&game, 0, command);
+            now_ms = monotonic_ms();
+            if (now_ms < 0) goto clock_failed;
+            expire_turn(&game, now_ms);
+            if (current.turn_id == game.turn_id && !game.finished) {
+                pending = command[1] == '\0' && (command[0] == 'e' || command[0] == 'E');
+                game.players[0].reply = 1;
+                apply_action(&game, 0, command, now_ms);
+            }
         }
         if (key) dirty = 1;
     }
     flush_and_close(&peer);
+    return;
+
+clock_failed:
+    peer_close(&peer);
+    notice("Could not read the turn clock. Start a new Host and Join session.");
 }
 
 int main(void)

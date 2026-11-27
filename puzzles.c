@@ -9,7 +9,13 @@ static void tell(Game *game, int player, const char *text)
     snprintf(game->players[player].clue, CLUE_SIZE, "%s", text);
 }
 
-static void next_turn(Game *game)
+static void reset_turn_timer(Game *game, int64_t now_ms)
+{
+    game->timer_started = 0;
+    game->deadline_ms = now_ms + TURN_START_MS;
+}
+
+static void next_turn(Game *game, int64_t now_ms)
 {
     game->players[game->active_player].prompt = PROMPT_NONE;
     if (game->turn_id == UINT_MAX) {
@@ -21,6 +27,13 @@ static void next_turn(Game *game)
     game->active_player = 1 - game->active_player;
     ++game->turn_id;
     game->actions_left = ACTIONS_PER_TURN;
+    reset_turn_timer(game, now_ms);
+}
+
+void expire_turn(Game *game, int64_t now_ms)
+{
+    if (!game->finished && now_ms >= game->deadline_ms)
+        next_turn(game, now_ms);
 }
 
 static void enter_map(Game *game, int number, int map)
@@ -36,12 +49,13 @@ static void enter_map(Game *game, int number, int map)
     tell(game, number, "Solve your puzzles, earn your key, then face the E exit and press E.");
 }
 
-void start_game(Game *game)
+void start_game(Game *game, int64_t now_ms)
 {
     if (!game) return;
     *game = (Game){0};
     game->turn_id = 1;
     game->actions_left = ACTIONS_PER_TURN;
+    reset_turn_timer(game, now_ms);
     for (int i = 0; i < 2; ++i) enter_map(game, i, 1);
 }
 
@@ -97,6 +111,7 @@ static int inspect(Game *game, int number)
     Player *player = &game->players[number];
     char object = facing_object(game, number);
     const char *text = map_description(player->map, number, object);
+    char prompt[CLUE_SIZE];
     int cost = 0;
     player->prompt = PROMPT_NONE;
 
@@ -113,14 +128,20 @@ static int inspect(Game *game, int number)
         else if (!player->words) text = "Reconstruct the Three Blanks note first.";
         else {
             player->prompt = PROMPT_CABINET;
-            text = "Cabinet padlock: type the three painting digits in the note's order.";
+            snprintf(prompt, sizeof prompt, "%s %s %s Type the three digits in the Three Blanks order.",
+                     map_description(1, number, 'A'), map_description(1, number, 'B'),
+                     map_description(1, number, 'C'));
+            text = prompt;
         }
     } else if (player->map == 1 && object == 'H') {
         if (player->hatch) text = "Hatch authorized. Your map key is ready. Use your E exit.";
         else if (!player->cabinet) text = "Hatch inactive. Open your cabinet first.";
         else {
             player->prompt = PROMPT_HATCH;
-            text = "Hatch keypad: use your equations and the cabinet instruction. Type three digits.";
+            snprintf(prompt, sizeof prompt,
+                     "%s Use Z, X, Y. Type the final digit of each result in that order.",
+                     map_description(1, number, 'D'));
+            text = prompt;
         }
     } else if (player->map == 2 && object == 'B') {
         if (!player->passage) {
@@ -133,7 +154,10 @@ static int inspect(Game *game, int number)
         else if (!player->passage) text = "Open your service passage before calibrating the receiver.";
         else {
             player->prompt = PROMPT_DIALS;
-            text = "Signal calibration: type A B C as three digits from 0 to 4 separated by spaces. Feedback appears on your screen.";
+            snprintf(prompt, sizeof prompt,
+                     "%s Type A B C as three digits from 0 to 4 separated by spaces.",
+                     map_description(2, number, 'R'));
+            text = prompt;
         }
     } else if (player->map == 3 && object >= '1' && object <= '4') {
         if (object != '4') {
@@ -265,23 +289,27 @@ static int submit_answer(Game *game, int number, const char *input)
     return 1;
 }
 
-void apply_action(Game *game, int number, const char *command)
+void apply_action(Game *game, int number, const char *command, int64_t now_ms)
 {
     if (!game || number < 0 || number > 1 || !command || game->finished || game->winner) return;
     Player *player = &game->players[number];
-    if (number != game->active_player || game->actions_left <= 0) return;
+    if (number != game->active_player || game->actions_left <= 0 ||
+        now_ms >= game->deadline_ms) return;
 
     int cost = 0;
+    int starts_timer = 0;
     if (strlen(command) == 1 && strchr("wasdWASD", command[0])) {
         if (player->prompt != PROMPT_NONE) return;
         int old_x = player->x;
         int old_y = player->y;
         move_player(game, number, command[0]);
+        starts_timer = 1;
         if (player->x != old_x || player->y != old_y) {
             cost = 1;
         }
     } else if (strcmp(command, "e") == 0 || strcmp(command, "E") == 0) {
         cost = inspect(game, number);
+        starts_timer = 1;
     } else if (strcmp(command, "cancel") == 0) {
         player->prompt = PROMPT_NONE;
     } else if (strncmp(command, "answer ", 7) == 0) {
@@ -289,7 +317,7 @@ void apply_action(Game *game, int number, const char *command)
         cost = submit_answer(game, number, command + 7);
         player->prompt = PROMPT_NONE;
     } else if (strcmp(command, "pass") == 0) {
-        next_turn(game);
+        next_turn(game, now_ms);
         return;
     } else {
         return;
@@ -297,5 +325,11 @@ void apply_action(Game *game, int number, const char *command)
 
     if (cost > game->actions_left) cost = game->actions_left;
     game->actions_left -= cost;
-    if (!game->finished && game->actions_left == 0) next_turn(game);
+    if (game->finished) return;
+    if (game->actions_left == 0) {
+        next_turn(game, now_ms);
+    } else if (starts_timer && !game->timer_started) {
+        game->timer_started = 1;
+        game->deadline_ms = now_ms + TURN_ACTION_MS;
+    }
 }
